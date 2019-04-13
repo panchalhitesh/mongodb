@@ -7,7 +7,9 @@ This application is fully based on the `MongoDataAutoConfiguration`, so refer to
 == Input
 
 === Headers
-
+     Header Name : op_type 
+     Header values: "I,i,Insert,insert, U,u,Update,update, D,d,Delete,delete"
+     Note: default op_type is Insert.
 === Payload
 
 * Any POJO
