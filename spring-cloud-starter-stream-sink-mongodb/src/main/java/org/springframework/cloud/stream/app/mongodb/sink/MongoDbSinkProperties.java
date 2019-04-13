@@ -37,16 +37,16 @@ public class MongoDbSinkProperties {
 	private String collection;
 	
 	/**
-	* Mongodb Documents unique Field name
-	*/
-	private String uniqueRecordIdentifier;
-	
-	public void setUniqueRecordIdentifier(String fieldName) {
-		this.uniqueRecordIdentifier = fieldName;
+	 * Mongodb Documents unique Field name
+	 */
+	private String queryfieldname;
+
+	public String getQueryfieldname() {
+		return queryfieldname;
 	}
 
-	public String getUniqueRecordIdentifier() {
-		return this.uniqueRecordIdentifier;
+	public void setQueryfieldname(String queryfieldname) {
+		this.queryfieldname = queryfieldname;
 	}
 	
 	/**
