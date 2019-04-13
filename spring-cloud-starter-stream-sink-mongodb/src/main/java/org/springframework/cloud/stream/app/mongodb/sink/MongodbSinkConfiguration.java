@@ -64,6 +64,7 @@ public class MongodbSinkConfiguration {
 			collectionExpression = new LiteralExpression(this.properties.getCollection());
 		}
 		mongoDbMessageHandler.setCollectionNameExpression(collectionExpression);
+		mongoDbMessageHandler.setUniqueFieldName(this.properties.getUniqueRecordIdentifier());
 		return mongoDbMessageHandler;
 	}
 
