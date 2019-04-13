@@ -29,6 +29,8 @@ import org.bson.Document;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -52,12 +54,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 /**
  * @author Artem Bilan
  * @author Chris Schaefer
+ * @author Hitesh Panchal
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @AutoConfigureDataMongo
 @DirtiesContext
 public abstract class MongoDbSinkApplicationTests {
+	Logger logger = LoggerFactory.getLogger(MongoDbSinkApplicationTests.class);
 
 	@Autowired
 	protected MongoTemplate mongoTemplate;
@@ -68,7 +72,7 @@ public abstract class MongoDbSinkApplicationTests {
 	@Autowired
 	protected MongoDbSinkProperties mongoDbSinkProperties;
 
-	@TestPropertySource(properties = "mongodb.collection=testing")
+	@TestPropertySource(properties = {"mongodb.collection=testing","mongodb.queryfieldname=uniqueId"})
 	static public class CollectionNameTests extends MongoDbSinkApplicationTests {
 
 		@Test
@@ -94,50 +98,105 @@ public abstract class MongoDbSinkApplicationTests {
 			assertEquals(5, result.size());
 
 			Document dbObject = result.get(0);
-			Logger.info("$$$$ Message 0 Object Size: "+dbObject.size()+" BSon String: "+dbObject.toString());
+			logger.info("$$$$ Message 0 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
 			assertNotNull(dbObject.get("_id"));
 			assertEquals(dbObject.get("foo"), "bar");
 
 			dbObject = result.get(1);
-			Logger.info("$$$$ Message 1  Object Size: "+dbObject.size()+" BSon String: "+dbObject.toString());
+			logger.info("$$$$ Message 1  Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
 			assertEquals(dbObject.get("firstName"), "Foo");
 			assertEquals(dbObject.get("lastName"), "Bar");
 
 			dbObject = result.get(2);
 			assertNull(dbObject.get("_class"));
-			Logger.info("$$$$ Message 2 Object Size: "+dbObject.size()+" BSon String: "+dbObject.toString());
+			logger.info("$$$$ Message 2 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
 			assertEquals(dbObject.get("my_data1"), "THE DATA");
 
 			dbObject = result.get(3);
 			assertNull(dbObject.get("_class"));
-			Logger.info("$$$$ Message 3 Object Size: "+dbObject.size()+" BSon String: "+dbObject.toString());
+			logger.info("$$$$ Message 3 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
 			//assertEquals(dbObject.get("uniqueId"), 123456789);
 
 			dbObject = result.get(4);
 			assertNull(dbObject.get("_class"));
-			Logger.info("$$$$ Message 4 Object Size: "+dbObject.size()+" BSon String: "+dbObject.toString());
+			logger.info("$$$$ Message 4 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
 			assertEquals(dbObject.get("my_data"), "THE DATA");
 
+		}
+		//update Test
+		@Test
+		public void testUpdateMessage() {
+			this.sink.input().send(new GenericMessage<>("{\"my_data2\": \"THE DATA\",\"uniqueId\": 123456789,\"my_data3\": \"THE DATA\"}"));
+
+			List<Document> result =
+					this.mongoTemplate.findAll(Document.class, mongoDbSinkProperties.getCollection());
+
+			assertEquals(6, result.size());
+
+			Document dbObject = result.get(0);
+			logger.info("$$$$ Message 0 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
+			assertNotNull(dbObject.get("_id"));
+			assertEquals(dbObject.get("foo"), "bar");
+
+			dbObject = result.get(1);
+			logger.info("$$$$ Message 1  Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
+			assertEquals(dbObject.get("firstName"), "Foo");
+			assertEquals(dbObject.get("lastName"), "Bar");
+
+			dbObject = result.get(2);
+			assertNull(dbObject.get("_class"));
+			logger.info("$$$$ Message 2 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
+			assertEquals(dbObject.get("my_data1"), "THE DATA");
+
+			dbObject = result.get(3);
+			assertNull(dbObject.get("_class"));
+			logger.info("$$$$ Message 3 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
+			//assertEquals(dbObject.get("uniqueId"), 123456789);
+
+			dbObject = result.get(4);
+			assertNull(dbObject.get("_class"));
+			logger.info("$$$$ Message 4 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
+			assertEquals(dbObject.get("my_data"), "THE DATA");
+
+			dbObject = result.get(5);
+			assertNull(dbObject.get("_class"));
+			logger.info("$$$$ Message 5 Object Size: {}, BSon String: {}",dbObject.size(),dbObject.toString());
+			assertEquals(dbObject.get("my_data2"), "THE DATA");
+
 			//update operation
+			Map<String, Object> updateHeaders = new HashMap<>();
+			updateHeaders.put(MongoDbStoringMessageHandler.OPERATION_TYPE, "U");
 			this.sink.input().send(new GenericMessage<>("{\"uniqueId\": 123456789,\"my_data2\": \"updated data\",\"my_data3\": \"THE DATA3\"}",updateHeaders));
 			List<Document> result2 =
 					this.mongoTemplate.findAll(Document.class, mongoDbSinkProperties.getCollection());
-			assertEquals(5, result2.size());
+			assertEquals(6, result2.size());
 			dbObject = result2.get(3);
 			assertNull(dbObject.get("_class"));
-			Logger.info("$$$$ Update Message 4 Object Size: "+dbObject.size()+" BSon String: "+dbObject.toString());
+			logger.info("$$$$ Update Message BSon String: {}",dbObject.toString());
 			assertEquals(dbObject.get("my_data2"), "updated data");
 			assertEquals(dbObject.get("my_data3"), "THE DATA3");
 			assertEquals(dbObject.get("uniqueId"), 123456789);
+		}
+		//remove Test
+		@Test
+		public void removeMessage(){
+			//insert records
+			this.sink.input().send(new GenericMessage<>("{\"my_data2\": \"THE DATA\",\"uniqueId\": 123456789,\"my_data3\": \"THE DATA\"}"));
+
+			List<Document> result =
+					this.mongoTemplate.findAll(Document.class, mongoDbSinkProperties.getCollection());
+			logger.info("$$$$ Total Records: {}",result.size());
+			assertEquals(1, result.size());
 			//delete operation
 			Map<String, Object> deleteHeaders = new HashMap<>();
 			deleteHeaders.put(MongoDbStoringMessageHandler.OPERATION_TYPE, "D");
 			this.sink.input().send(new GenericMessage<>("{\"uniqueId\": 123456789}",deleteHeaders));
-			List<Document> result3 =
+			//after remove
+			List<Document> result2 =
 					this.mongoTemplate.findAll(Document.class, mongoDbSinkProperties.getCollection());
-			assertEquals(4, result3.size());
+			logger.info("$$$$ Total Records: {}",result2.size());
+			assertEquals(0, result2.size());
 		}
-
 
 	}
 

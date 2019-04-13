@@ -55,7 +55,7 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 	public static String UNIQUE_FIELD_VALUE = "unique_field_value";
 	public static String OPERATION_TYPE = "op_type";
 
-	org.slf4j.Logger Logger = LoggerFactory.getLogger(MongoDbStoringMessageHandler.class);
+	Logger Logger = LoggerFactory.getLogger(MongoDbStoringMessageHandler.class);
 
 	private volatile MongoOperations mongoTemplate;
 
@@ -111,22 +111,6 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 	}
 
 	/**
-	 * Unique Field Name
-	 * @return
-	 */
-	public String getUniqueFieldName() {
-		return uniqueFieldName;
-	}
-
-	/**
-	 * Unique Field name
-	 * @param uniqueFieldName
-	 */
-	public void setUniqueFieldName(String uniqueFieldName) {
-		this.uniqueFieldName = uniqueFieldName;
-	}
-
-	/**
 	 * Allows you to provide custom {@link MongoConverter} used to assist in serialization
 	 * of data written to MongoDb. Only allowed if this instance was constructed with a
 	 * {@link MongoDbFactory}.
@@ -178,6 +162,7 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 			switch(message.getHeaders().get("op_type").toString()){
 				//update operations
 				case "Insert":
+				case "insert":
 				case "INSERT":
 				case "I":
 				case "i":
@@ -186,12 +171,9 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 				//update operations
 				case "U":
 				case "u":
+				case "update":
 				case "Update":
 				case "UPDATE":
-					//get update query from header and update it
-					//String collectionFieldName = message.getHeaders().get("unique_field_name").toString();
-					//Object collectionFieldValue = message.getHeaders().get("unique_field_value");
-					//Query updateQueryFinder = QueryBuilder.start(collectionFieldName).in(collectionFieldValue);
 					BasicDBObject dbObject = BasicDBObject.parse(payload.toString());
 					Set<String> keys = dbObject.keySet();
 					Update updatedData = new Update();
@@ -210,14 +192,11 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 				case "d":
 				case "DELETE":
 				case "Delete":
-					//get unique identified to find the value to be removed.
-					//String removeFieldName = message.getHeaders().get("unique_field_name").toString();
-					//Object removeFieldValue = message.getHeaders().get("unique_field_value");
-					//BasicDBObject removeQueryFinder = new BasicDBObject(removeFieldName, new BasicDBObject("$eq",removeFieldValue));
-					Query deleteQuery = new Query();
+				case "delete":
 					BasicDBObject dbObjectRec = BasicDBObject.parse(payload.toString());
+					Query deleteQuery = new Query();
 					deleteQuery.addCriteria(new Criteria(getUniqueFieldName()).is(dbObjectRec.get(getUniqueFieldName())));
-					Logger.debug("$$$$$$$$$ remove object query {}",deleteQuery.toString());
+					Logger.info("Delete object query {}",deleteQuery.toString());
 					Object resultd = this.mongoTemplate.remove(deleteQuery, collectionName);
 					Logger.info("Delete records counts: {}",resultd.toString());
 				break;
