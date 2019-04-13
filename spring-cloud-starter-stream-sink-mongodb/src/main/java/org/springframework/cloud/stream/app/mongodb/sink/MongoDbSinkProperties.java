@@ -35,7 +35,20 @@ public class MongoDbSinkProperties {
 	 * The MongoDB collection to store data
 	 */
 	private String collection;
+	
+	/**
+	* Mongodb Documents unique Field name
+	*/
+	private String uniqueRecordIdentifier;
+	
+	public void setUniqueRecordIdentifier(String fieldName) {
+		this.uniqueRecordIdentifier = fieldName;
+	}
 
+	public String getUniqueRecordIdentifier() {
+		return this.uniqueRecordIdentifier;
+	}
+	
 	/**
 	 * The SpEL expression to evaluate MongoDB collection
 	 */
