@@ -70,6 +70,22 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 	private volatile String uniqueFieldName;
 
 	private volatile boolean initialized = false;
+	
+	/**
+	 * Unique Field Name
+	 * @return
+	 */
+	public String getUniqueFieldName() {
+		return uniqueFieldName;
+	}
+
+	/**
+	 * Unique Field name
+	 * @param uniqueFieldName
+	 */
+	public void setUniqueFieldName(String uniqueFieldName) {
+		this.uniqueFieldName = uniqueFieldName;
+	}
 
 	/**
 	 * Will construct this instance using provided {@link MongoDbFactory}
@@ -154,9 +170,10 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 		Assert.isTrue(this.initialized, "This class is not yet initialized. Invoke its afterPropertiesSet() method");
 		String collectionName = this.collectionNameExpression.getValue(this.evaluationContext, message, String.class);
 		Assert.notNull(collectionName, "'collectionNameExpression' must not evaluate to null");
+		Logger.info("Properties: uniqueFieldName: {}",uniqueFieldName);
 		if(message.getHeaders().containsKey("op_type")){
 			Object payload = message.getPayload();
-			Logger.debug("Payload intance of {}",payload.getClass().getName());
+			Logger.debug("Payload instance of {}",payload.getClass().getName());
 			//perform operation based on the operation type
 			switch(message.getHeaders().get("op_type").toString()){
 				//update operations
@@ -184,6 +201,7 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 					}
 					Query updateQuery = new Query();
 					updateQuery.addCriteria(new Criteria(getUniqueFieldName()).is(dbObject.get(getUniqueFieldName())));
+					Logger.debug("Updated records Query: {}",updateQuery.toString());
 					Object result = this.mongoTemplate.updateMulti(updateQuery,updatedData,collectionName);
 					Logger.info("Updated records counts: {}",result.toString());
 				break;
