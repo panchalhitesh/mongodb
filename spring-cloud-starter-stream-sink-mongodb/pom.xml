@@ -14,6 +14,22 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-stream-binder-kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-config</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud.stream.app</groupId>
+			<artifactId>app-starters-trigger-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud.stream.app</groupId>
+			<artifactId>app-starters-trigger-unlimited-common</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
@@ -26,10 +42,39 @@
 			<artifactId>de.flapdoodle.embed.mongo</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>org.springframework.cloud.stream.app.mongodb.sink.MongodbSinkConfiguration</mainClass>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-app-starter-metadata-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>aggregate-metadata</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>aggregate-metadata</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-app-starter-doc-maven-plugin</artifactId>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-app-starter-doc-maven-plugin</artifactId>
@@ -40,15 +85,50 @@
 				<configuration>
 					<generatedProjectHome>${session.executionRootDirectory}/apps</generatedProjectHome>
 					<generatedProjectVersion>${project.version}</generatedProjectVersion>
-					<bom>
-						<name>scs-bom</name>
-						<groupId>org.springframework.cloud.stream.app</groupId>
-						<artifactId>mongodb-app-dependencies</artifactId>
-						<version>${project.version}</version>
-					</bom>
 					<generatedApps>
-						<mongodb-sink/>
+						<mongodb-sink>
+							<extraTestConfigClass>org.springframework.cloud.stream.app.mongodb.sink.MongoDbSinkApplicationTests.class</extraTestConfigClass>
+						</mongodb-sink>
 					</generatedApps>
+					<additionalGlobalDependencies>
+						<dependency>
+							<groupId>org.springframework.cloud</groupId>
+							<artifactId>spring-cloud-starter-config</artifactId>
+						</dependency>
+						<dependency>
+							<groupId>org.springframework.cloud.stream.app</groupId>
+							<artifactId>app-starters-micrometer-common</artifactId>
+						</dependency>
+					</additionalGlobalDependencies>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>${jib-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>dockerBuild</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<jvmFlags>
+						<jvmFlag>-Xms512m</jvmFlag>
+					</jvmFlags>
+					<allowInsecureRegistries>true</allowInsecureRegistries>
+					<from>
+						<image>grc.io/openjdk:8-jre-alpine</image>
+					</from>
+					<to>
+						<credHelper>gcr</credHelper>
+						<tags>
+							<tag>${project.version}</tag>
+							<tag>LATEST</tag>
+						</tags>
+					</to>
 				</configuration>
 			</plugin>
 		</plugins>
