@@ -78,6 +78,12 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 	public String getUniqueFieldName() {
 		return uniqueFieldName;
 	}
+	
+	public Set<String> getUniqueFieldNames() {
+		return Stream.of(this.uniqueFieldName.split(","))
+				.map (elem -> new String(elem))
+				.collect(Collectors.toSet());
+	}
 
 	/**
 	 * Unique Field name
@@ -178,11 +184,13 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 					Set<String> keys = dbObject.keySet();
 					Update updatedData = new Update();
 					for (String key:keys) {
-						if(!key.equals(getUniqueFieldName()))
+						if(!getUniqueFieldNames().contains(key))
 							updatedData.set(key,dbObject.get(key));
 					}
 					Query updateQuery = new Query();
-					updateQuery.addCriteria(new Criteria(getUniqueFieldName()).is(dbObject.get(getUniqueFieldName())));
+					for (String queryFieldName:getUniqueFieldNames()) {
+						updateQuery.addCriteria(new Criteria(queryFieldName).is(dbObject.get(queryFieldName)));
+					}
 					Logger.debug("Updated records Query: {}",updateQuery.toString());
 					Object result = this.mongoTemplate.updateMulti(updateQuery,updatedData,collectionName);
 					Logger.info("Updated records counts: {}",result.toString());
@@ -195,7 +203,9 @@ public class MongoDbStoringMessageHandler extends AbstractMessageHandler {
 				case "delete":
 					BasicDBObject dbObjectRec = BasicDBObject.parse(payload.toString());
 					Query deleteQuery = new Query();
-					deleteQuery.addCriteria(new Criteria(getUniqueFieldName()).is(dbObjectRec.get(getUniqueFieldName())));
+					for (String queryFieldName:getUniqueFieldNames()) {
+						deleteQuery.addCriteria(new Criteria(queryFieldName).is(dbObjectRec.get(queryFieldName)));
+					}
 					Logger.info("Delete object query {}",deleteQuery.toString());
 					Object resultd = this.mongoTemplate.remove(deleteQuery, collectionName);
 					Logger.info("Delete records counts: {}",resultd.toString());
